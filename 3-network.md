@@ -325,7 +325,7 @@ Alias IP Ranges let you assign a range of internal IP addresses as an alias to a
 how to? => You just draw the alias IP range from the local subnet's primary or secondary CIDR ranges.
 
 example:
-![ALIAS-IP](./PICS/3-alias-ip%20ranges.png)
+![ALIAS-IP](./pics/3-alias-ip%20ranges.png)
 
 ## IP addresses of Default domains
 Google publishes the complete list of IP ranges that it announces to the internet in goog.json.
