@@ -25,12 +25,17 @@
   - [Private Google Access (PGA)](#private-google-access-pga)
 - [Firewall](#firewall)
   - [Configure firewall rules](#configure-firewall-rules)
+  - [Configure allow ssh](#configure-allow-ssh)
 - [DNS](#dns)
   - [IP addresses of Default domains](#ip-addresses-of-default-domains)
 - [Network related iam role](#network-related-iam-role)
 - [Network Pricing](#network-pricing)
   - [Traffic](#traffic)
   - [Exteranl IP address pricing](#exteranl-ip-address-pricing)
+- [CLI](#cli)
+  - [vpc \& subnets](#vpc--subnets)
+  - [firewalls](#firewalls)
+  - [VMs](#vms)
 
 
 # Regions, PoPs, and Networks
@@ -271,6 +276,12 @@ private IP VMs does not need NAT gateway to use PGA to access google services.
 Firewall rules (ingress/egress) are ___stateful___, meaning they automatically allow responses to the requests. Actually, this means that if a connection is allowed between a source and a target or a target at a destination, __all subsequent traffic in either direction will be allowed__. => firewall rules __allow bidirectional communication once a session is established__.
 
 if for some reason, all firewall rules in a network are deleted, there is still an implied "Deny all" ingress rule and an implied "Allow all" egress rule for the network.
+```
+ The deny-all-ingress and allow-all-egress rules are also displayed, 
+ but you cannot select or disable them because they are implied. 
+ These two rules have the lowest Priority (65535) 
+ so other rules are considered first.
+```
 
 
 ## Configure firewall rules
@@ -296,6 +307,12 @@ __A FIREWALL IS COMPOSED OF__
    1. By ___default, all rules are assigned to all instances___ 
    2. but you can ___assign certain rules to certain instances only___.
 
+
+## Configure allow ssh
+
+allow incoming traffic from anywhere(0.0.0.0/0) for __tcp:22__
+
+rdp: tcp:3389
 
 # DNS
 
@@ -363,3 +380,35 @@ This table, is from the Compute Engine documentation and it lists the price of e
 ![](./pics/3-external-ip-address-pricing.png)
 
 if you reserve a static external IP address and do not assign it to a resource, such as a VM instance or a forwarding rule, you are __charged at a higher rate__ than for static and ephemeral external IP addresses that are in use.
+
+# CLI
+
+## vpc & subnets
+```
+gcloud compute networks create privatenet --subnet-mode=custom
+```
+```
+gcloud compute networks subnets create privatesubnet-notus --network=privatenet --region=asia-east1 --range=172.20.0.0/20
+```
+
+```
+gcloud compute networks list
+
+gcloud compute networks subnets list --sort-by=NETWORK
+```
+
+## firewalls
+```
+gcloud compute --project=qwiklabs-gcp-01-eec5ecd82b30 firewall-rules create managementnet-allow-icmp-ssh-rdp --direction=INGRESS --priority=1000 --network=managementnet --action=ALLOW --rules=icmp,tcp:22,tcp:3389 --source-ranges=0.0.0.0/0
+```
+```
+gcloud compute firewall-rules list --sort-by=NETWORK
+
+gcloud compute firewall-rules list --filter mynetwork  --sort-by=PRIORITY
+```
+## VMs
+```
+gcloud compute instances create privatenet-us-vm --zone=us-west1-a --machine-type=e2-micro --subnet=privatesubnet-us --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=privatenet-us-vm
+
+gcloud compute instances list --sort-by=ZONE
+```
