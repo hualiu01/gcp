@@ -1,19 +1,15 @@
+# Table of Contents
+
+- [Table of Contents](#table-of-contents)
 - [Regions, PoPs, and Networks](#regions-pops-and-networks)
 - [VPC - Virtual Private Connection](#vpc---virtual-private-connection)
   - [auto mode network/vpc](#auto-mode-networkvpc)
   - [custom mode network/vpc](#custom-mode-networkvpc)
-  - [Connectivity within\&between VPC](#connectivity-withinbetween-vpc)
-  - [Subnets](#subnets)
-    - [reserved IPs in it's private IP range](#reserved-ips-in-its-private-ip-range)
-    - [Expand subnets IPs CIDR range](#expand-subnets-ips-cidr-range)
-- [IP](#ip)
-  - [Internal IP](#internal-ip)
-  - [External IP (Optional)](#external-ip-optional)
-  - [DNS](#dns)
-  - [IP addresses of Default domains](#ip-addresses-of-default-domains)
-  - [Firewall](#firewall)
-  - [Network Pricing](#network-pricing)
-- [Connections between multiple gcp VPCs](#connections-between-multiple-gcp-vpcs)
+- [Subnets](#subnets)
+  - [reserved IPs in it's private IP range](#reserved-ips-in-its-private-ip-range)
+  - [Expand subnets IPs CIDR range](#expand-subnets-ips-cidr-range)
+- [Connectivity within\&between VPC](#connectivity-withinbetween-vpc)
+  - [Connections between multiple gcp VPCs](#connections-between-multiple-gcp-vpcs)
 - [Connecting networks to Google VPC from on premises](#connecting-networks-to-google-vpc-from-on-premises)
   - [1 - Cloud VPN](#1---cloud-vpn)
   - [2 - Direct Peering](#2---direct-peering)
@@ -21,9 +17,20 @@
   - [4 - Dedicated Interconnect](#4---dedicated-interconnect)
   - [5 - Partner Interconnect](#5---partner-interconnect)
   - [6 - Cross-Cloud Interconnect](#6---cross-cloud-interconnect)
+- [IP](#ip)
+  - [Internal IP](#internal-ip)
+  - [External IP (Optional)](#external-ip-optional)
 - [Routes](#routes)
-- [Private Google Access (PGA)](#private-google-access-pga)
-- [network related iam role](#network-related-iam-role)
+  - [Route Types](#route-types)
+  - [Private Google Access (PGA)](#private-google-access-pga)
+- [Firewall](#firewall)
+  - [Configure firewall rules](#configure-firewall-rules)
+- [DNS](#dns)
+  - [IP addresses of Default domains](#ip-addresses-of-default-domains)
+- [Network related iam role](#network-related-iam-role)
+- [Network Pricing](#network-pricing)
+  - [Traffic](#traffic)
+  - [Exteranl IP address pricing](#exteranl-ip-address-pricing)
 
 
 # Regions, PoPs, and Networks
@@ -46,16 +53,10 @@ GCP's subnets are regional, while aws's subnets are zonal.
 
 custom mode networks can not be converted to automode.
 
-## Connectivity within&between VPC
 
-On one hand, two VMs, even if they are deployed to different regions, as long as they live in the same VPC, they can communicate using their private IP addresses. 
+# Subnets
 
-On the other hand, two VMs, even if they are deployed to the same region, as long as they live in different VPCs, they __have to communicate using their public IP addresses__(unless there are other machagnism set up, such as vpc peering). 
-- Note: the traffic between these two VMs __is not touching public internet, but is going through the Google Edge routers__. 
-
-## Subnets
-
-### reserved IPs in it's private IP range
+## reserved IPs in it's private IP range
 
 __The first and second addresses__ in the range, .0 and .1 (xxx.xxx.xxx.0, and xxx.xxx.xxx.1), are __reserved for the network and the subnet’s gateway__, respectively.
 - For example for a subnet of CIDR 10.0.0.0/24, 10.0.0.0, and 10.0.0.1 would be reserved for the network and the subnet's gateway.
@@ -63,7 +64,7 @@ __The first and second addresses__ in the range, .0 and .1 (xxx.xxx.xxx.0, and x
 The other reserved addresses in every subnet are the __second-to-last address in the range and the last address, which is reserved as the "broadcast" address__. 
 
 
-### Expand subnets IPs CIDR range
+## Expand subnets IPs CIDR range
 
 Expand => ok; make subnet range smaller => Can't
 
@@ -75,110 +76,15 @@ more likely to cause CIDR range collisions when using Multiple Network Interface
 ___downtime of network expansion___
 Speaking of IP addresses of a subnet, __Google Cloud VPCs let you increase the IP address space of any subnets without any workload shutdown or downtime__. 
 
-# IP
-
-For ephemeral internal or external IPs in GCP, on terminating or deleting-recreating the VMs, the IPs will get released. 
-On __stop and restarting__ the VMs, the internal IP should not get released. __But the external IPs will__.
-
-## Internal IP
-
-- Allocated from subnet range to VMs by _DHCP_
-- DHCP lease if renewed every 24 hours
-- VM name IP is registered with network-scoped DNS
-- A ___private RFC 1918 CIDR___ refers to a range of IP addresses defined in RFC 1918, which are reserved for private networks and cannot be directly routed on the public internet; these ranges include: __10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16__.
-
-## External IP (Optional)
-- Every external IP address assigned in GCP is __unique across the entire internet__ (not just within a specific region or project). Once assigned, no other GCP user or project can have that same IP unless it is released.
-
-- two types: 1) assigned from pool (ephemeral); or 2) reserved (static)
-  - if you reserved and __do not assign it to a resource__, such as a VM instance or a forwarding rule, you are __charged at a higher rate__ than for static and ephemeral IP addresses __that are in use__.
-- bring your own ip address (BYOIP)
-  - You can use your own publicly routable IP address prefixes as Google Cloud external IP addresses and advertise them on the Internet. In order to be eligible, you must own and bring a /24 block or large
-- VM does not know its external IP; The exteranl IPs are mapped to the internal IP by VPC.
-  - `sudo /sbin/ifconfig` will only return the internal IP of a machine, no external IP is returned.
-
-___External IPs are regional resources___
-
-In Google Cloud Platform (GCP), the statement "External IPs are regional resources" means that external IP addresses (public IPs) are tied to a specific region rather than a specific zone. Here’s what that implies:
-
-Region-level Scope:
-- When you allocate an external IP, it belongs to a region rather than a specific availability zone within that region.
-- This allows __resources in different zones within the same region to use the external IP__.
-
-Impacts on Redundancy & Failover:
-- Since external IPs are regional, they can be reassigned to instances in different zones within the same region.
-- __This is useful for high availability setups, where you might need to move an IP from a failed instance in one zone to a backup in another zone__.
-
-Usage with Load Balancers:
-- Global external IPs exist, but those are typically used for HTTP(S) Load Balancers.
-- For regional services like TCP/UDP load balancers or VM instances with external IPs, the IP is constrained to a specific region.
+# Connectivity within&between VPC
 
 
-## DNS
+On one hand, two VMs, even if they are deployed to different regions, as long as they live in the same VPC, they can communicate using their private IP addresses. 
 
-___ZONAL & GLOABAL DNS___
+On the other hand, two VMs, even if they are deployed to the same region, as long as they live in different VPCs, they __have to communicate using their public IP addresses__(unless there are other machagnism set up, such as vpc peering). 
+- Note: the traffic between these two VMs __is not touching public internet, but is going through the Google Edge routers__. 
 
-Google Cloud has two types of internal DNS names, Zonal and Global (project wide) DNS. In general, Google __strongly recommends using zonal DNS__ because it offers higher reliability guarantees by isolating failures in the DNS registration to individual zones. 
-
-___HOSTNAME; FQDN; METADATA SERVER___
-
-Each instance has __a hostname that can be resolved to an internal IP addr__:
-- the __hostname is the same as the instance name__.
-- FQDN (Fully Qualified Domain Names) is [hostname].[zone].c.[project-id].internal
-  - example: my-server.us-central1-a.c.guestbook-151617.internal
-
-Each __instance has a metadata server that also acts as a DNS resolver for that instance__. The metadata server handles all DNS queries for local network resources and routes all other queries to Google's public DNS servers for public name resolution.
-
-___PUBLISH___
-Public DNS records pointing to instances are not published automatically; however, admins can publish these using existing DNS servers.
-
-___GCP SERVICE: CLOUD DNS___
-100% uptime SLA
-Global
-
-___Alias IP Ranges___
-Alias IP Ranges let you assign a range of internal IP addresses as an alias to a virtual machine's network interface. This is useful if you have multiple services running on a VM, and you want to assign a different IP address to each service. 
-
-how to? => You just draw the alias IP range from the local subnet's primary or secondary CIDR ranges.
-
-example:
-![ALIAS-IP](./PICS/3-alias-ip%20ranges.png)
-
-## IP addresses of Default domains
-Google publishes the complete list of IP ranges that it announces to the internet in goog.json.
-Google also publishes a list of GoogleCloud customer-usable global and regional external IP
- addresses ranges in cloud.json.
-The following files replace the _spf.google.com TXT records previously recommended to use for
-listing Google IP addresses.
-- https://www.gstatic.com/ipranges/cloud.jsonprovidesaJSONrepresentationofCloud
-IPaddressesorganizedbyregion.
-- https://www.gstatic.com/ipranges/cloud_geofeedisastandardgeofeed formattedIP
-geolocationfilethatwesharewith3rd-partyIPgeoproviderslikeMaxmind,Neustar,and
-IP2Location.
-- https://www.gstatic.com/ipranges/goog.jsonand
-https://www.gstatic.com/ipranges/goog.txtareJSONandTXTformattedfiles
-respectivelythatincludeGooglepublicprefixesinCIDRnotation.
-
-For more information as well as an example of how to use this information,refer to
-https://cloud.google.com/vpc/docs/configure-private-google-access#ip-addr-defaults
-
-
-## Firewall
-
-Firewall rules (ingress/egress) are ___stateful___, meaning they automatically allow responses to the requests.
-
-note: price wise, ingress is not charged
-
-ther is always two default firewall rule with lowest proiority which allows all egress and deny all ingress.ß
-
-
-## Network Pricing
-
-This table, is from the Compute Engine documentation and it lists the price of each traffic type.
-![](./pics/3-network-pricing.png)
-Responses to request account as egress and are charged. 
-
-# Connections between multiple gcp VPCs
+## Connections between multiple gcp VPCs
 
 https://cloud.google.com/vpc/docs/vpc-peering
 
@@ -278,6 +184,48 @@ Cross-Cloud Interconnect helps you establish __high-bandwidth dedicated connecti
 
 Cross-Cloud Interconnect connections are available in two sizes: 10 Gbps or 100 Gbps.
 
+# IP
+
+For ephemeral internal or external IPs in GCP, on terminating or deleting-recreating the VMs, the IPs will get released. 
+On __stop and restarting__ the VMs, the internal IP should not get released. __But the external IPs will__.
+
+## Internal IP
+
+Internal IP can be configured as auto-ephemeral or custom-ephemeral or static.
+On the two ephemeral config, stoping and restarting the VM won't have the private ip changed. But terminating will.
+
+- Allocated from subnet range to VMs by _DHCP_
+- DHCP lease is renewed every 24 hours, on renewal internal ip won't get changed
+- VM name IP is registered with network-scoped DNS
+- A ___private RFC 1918 CIDR___ refers to a range of IP addresses defined in RFC 1918, which are reserved for private networks and cannot be directly routed on the public internet; these ranges include: __10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16__.
+
+## External IP (Optional)
+- Every external IP address assigned in GCP is __unique across the entire internet__ (not just within a specific region or project). Once assigned, no other GCP user or project can have that same IP unless it is released.
+
+- two types: 1) assigned from pool (ephemeral); or 2) reserved (static)
+  - if you reserved and __do not assign it to a resource__, such as a VM instance or a forwarding rule, you are __charged at a higher rate__ than for static and ephemeral IP addresses __that are in use__.
+- bring your own ip address (BYOIP)
+  - You can use your own publicly routable IP address prefixes as Google Cloud external IP addresses and advertise them on the Internet. In order to be eligible, you must own and bring a /24 block or large
+- VM does not know its external IP; The exteranl IPs are mapped to the internal IP by VPC.
+  - `sudo /sbin/ifconfig` will only return the internal IP of a machine, no external IP is returned.
+
+___External IPs are regional resources___
+
+In Google Cloud Platform (GCP), the statement "External IPs are regional resources" means that external IP addresses (public IPs) are tied to a specific region rather than a specific zone. Here’s what that implies:
+
+Region-level Scope:
+- When you allocate an external IP, it belongs to a region rather than a specific availability zone within that region.
+- This allows __resources in different zones within the same region to use the external IP__.
+
+Impacts on Redundancy & Failover:
+- Since external IPs are regional, they can be reassigned to instances in different zones within the same region.
+- __This is useful for high availability setups, where you might need to move an IP from a failed instance in one zone to a backup in another zone__.
+
+Usage with Load Balancers:
+- Global external IPs exist, but those are typically used for HTTP(S) Load Balancers.
+- For regional services like TCP/UDP load balancers or VM instances with external IPs, the IP is constrained to a specific region.
+
+
 # Routes
 
 Q: How to configure __internet access__ for external IP VMs? How about internal IP VMs?
@@ -287,7 +235,11 @@ Then, the EGRESS firewall that allows it.
 Q: How to configure routes within subnet, so that __resources in the same subnet can route traffic to each other__ ? what about between subnets?
 A: A route to subnets' CIDR, with next hop as the subnet itself. For between subnets => experiments to find out.
 
-__Route Types__
+Q: ow to specify a route to be applied to specific instances in a subnet?
+A: A route applies to an instance if the network and instance __tags__ match.
+- If the network matches and there are no instance tags specified, the route applies to all instances in that network.
+
+## Route Types
 
 - System-generated
   - priority 65534 => Google Cloud only uses a default route if a route with a more specific destination does not apply to a packet.
@@ -303,12 +255,111 @@ __Route Types__
     - destinations always represent IP address ranges outside your VPC network, which are received from a BGP peer router
     - Dynamic routes are used by: Dedicated Interconnect, Partner Interconnect, HA VPN tunnels. Classic VPN tunnels that use dynamic routing Routes 
 
-# Private Google Access (PGA)
+
+
+## Private Google Access (PGA)
 
 PGA does not have effect on VMs with publich IP. Meaning if an instance has a public IP, then, even if the PGA is enabled in the subnet it blelongs to, it will not use (bypassing) the PGA.
 
 private IP VMs does not need NAT gateway to use PGA to access google services.
 
-# network related iam role
+
+
+
+# Firewall
+
+Firewall rules (ingress/egress) are ___stateful___, meaning they automatically allow responses to the requests. Actually, this means that if a connection is allowed between a source and a target or a target at a destination, __all subsequent traffic in either direction will be allowed__. => firewall rules __allow bidirectional communication once a session is established__.
+
+if for some reason, all firewall rules in a network are deleted, there is still an implied "Deny all" ingress rule and an implied "Allow all" egress rule for the network.
+
+
+## Configure firewall rules
+
+Also __firewall rules are applied to the network(a vpc not just a subnet) as a whole__. connections are allowd or denied __at instances level__. You can think of the firewall as existing not only between your instances and other networks, but __between individual instances within the same network__.
+
+__A FIREWALL IS COMPOSED OF__
+
+1. ___direction___: 
+   1. inbound connections are matched against ingress rules only
+   2. outbound connections are matched against egress rules only
+2. ___source___ or ___destination___:
+   1. For ingress rules, _source_ can be specified with: ___IP addresses, source tags, or source service account___
+   2. For egress rules, _destination_ can be specified with: ___one or more ranges of IP addresses___.
+3. ___protocol___ and ___port___:
+   1. can be specified with: ___protocols only or specific combinations of protocols and ports___.
+4. ___action___: 
+   1. Allow or Deny
+5. ___priority___: 
+   1. 0-65535, 
+   2. 0 is the highest priority
+6. ___rule assignment___: 
+   1. By ___default, all rules are assigned to all instances___ 
+   2. but you can ___assign certain rules to certain instances only___.
+
+
+# DNS
+
+___ZONAL & GLOABAL DNS___
+
+Google Cloud has two types of internal DNS names, Zonal and Global (project wide) DNS. In general, Google __strongly recommends using zonal DNS__ because it offers higher reliability guarantees by isolating failures in the DNS registration to individual zones. 
+
+___HOSTNAME; FQDN; METADATA SERVER___
+
+Each instance has __a hostname that can be resolved to an internal IP addr__:
+- the __hostname is the same as the instance name__.
+- FQDN (Fully Qualified Domain Names) is [hostname].[zone].c.[project-id].internal
+  - example: my-server.us-central1-a.c.guestbook-151617.internal
+
+Each __instance has a metadata server that also acts as a DNS resolver for that instance__. The metadata server handles all DNS queries for local network resources and routes all other queries to Google's public DNS servers for public name resolution.
+
+___PUBLISH___
+Public DNS records pointing to instances are not published automatically; however, admins can publish these using existing DNS servers.
+
+___GCP SERVICE: CLOUD DNS___
+100% uptime SLA
+Global
+
+___Alias IP Ranges___
+Alias IP Ranges let you assign a range of internal IP addresses as an alias to a virtual machine's network interface. This is useful if you have multiple services running on a VM, and you want to assign a different IP address to each service. 
+
+how to? => You just draw the alias IP range from the local subnet's primary or secondary CIDR ranges.
+
+example:
+![ALIAS-IP](./PICS/3-alias-ip%20ranges.png)
+
+## IP addresses of Default domains
+Google publishes the complete list of IP ranges that it announces to the internet in goog.json.
+Google also publishes a list of GoogleCloud customer-usable global and regional external IP
+ addresses ranges in cloud.json.
+The following files replace the _spf.google.com TXT records previously recommended to use for
+listing Google IP addresses.
+- https://www.gstatic.com/ipranges/cloud.jsonprovidesaJSONrepresentationofCloud
+IPaddressesorganizedbyregion.
+- https://www.gstatic.com/ipranges/cloud_geofeedisastandardgeofeed formattedIP
+geolocationfilethatwesharewith3rd-partyIPgeoproviderslikeMaxmind,Neustar,and
+IP2Location.
+- https://www.gstatic.com/ipranges/goog.jsonand
+https://www.gstatic.com/ipranges/goog.txtareJSONandTXTformattedfiles
+respectivelythatincludeGooglepublicprefixesinCIDRnotation.
+
+For more information as well as an example of how to use this information,refer to
+https://cloud.google.com/vpc/docs/configure-private-google-access#ip-addr-defaults
+
+
+# Network related iam role
 
 ![./pics/network%20related%20iam%20roles.png](./pics/network%20related%20iam%20roles.png)
+
+# Network Pricing
+
+## Traffic
+
+This table, is from the Compute Engine documentation and it lists the price of each traffic type.
+![](./pics/3-network-pricing.png)
+- Note: Ingress is not charged __unless there is a resource, such as LB that is processing the ingress traffic__. Also, __responses to requests account as egress and are charged__.
+
+## Exteranl IP address pricing
+
+![](./pics/3-external-ip-address-pricing.png)
+
+if you reserve a static external IP address and do not assign it to a resource, such as a VM instance or a forwarding rule, you are __charged at a higher rate__ than for static and ephemeral external IP addresses that are in use.
