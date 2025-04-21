@@ -22,7 +22,9 @@
   - [External IP (Optional)](#external-ip-optional)
 - [Routes](#routes)
   - [Route Types](#route-types)
-  - [Private Google Access (PGA)](#private-google-access-pga)
+- [Private Google Access (PGA)](#private-google-access-pga)
+- [Cloud NAT](#cloud-nat)
+- [PGA and Cloud NAT LAB](#pga-and-cloud-nat-lab)
 - [Firewall](#firewall)
   - [Configure firewall rules](#configure-firewall-rules)
   - [Configure allow ssh](#configure-allow-ssh)
@@ -262,13 +264,40 @@ A: A route applies to an instance if the network and instance __tags__ match.
 
 
 
-## Private Google Access (PGA)
+# Private Google Access (PGA)
 
-PGA does not have effect on VMs with publich IP. Meaning if an instance has a public IP, then, even if the PGA is enabled in the subnet it blelongs to, it will not use (bypassing) the PGA.
+__PGA does not have effect on VMs with publich IP__. Meaning if an instance has a public IP, then, even if the PGA is enabled in the subnet it blelongs to, it will not use (bypassing) the PGA.
 
-private IP VMs does not need NAT gateway to use PGA to access google services.
+private IP VMs does not need NAT gateway to use PGA to access google services. => todo: verify?
 
+An example: https://cloud.google.com/vpc/docs/private-google-access#example 
 
+# Cloud NAT
+
+Cloud NAT is a regional resource. You can configure it to allow traffic from all ranges of all subnets in a region, from specific subnets in the region only, or from specific primary and secondary CIDR ranges only.
+
+It may take up to 3 minutes for the NAT configuration to propagate to the VM, so wait at least a minute before trying to access the internet again.
+
+# PGA and Cloud NAT LAB
+
+1. create vpc network and subnets and firewall rules
+   1. private subnet mode: custom 
+   2. firewall: allow tcp 22 from 35.235.240.0/20 which is the cloud IAP CIDR 
+2. create a new VM `my-vm-internal` in that subnet 
+   1. select networking interface as the subnet above
+   2. SELECT external IP address as None
+3. Cloud shell logging in to the VM via IAP + test access to internet and google apis
+   1. `gcloud compute ssh my-vm-internal --zone us-central1-a --tunnel-through-iap`
+   2. Test: now we can't access internet yet: `ping -c 2 www.google.com`
+   3. Test: we can't access Google APIs list the gcs
+   4. `exit` to return to cloud shell
+4. enable GPA in the subnet via Edit + test again
+   1. Test: `sudo apt-get update` => only google ones are downloaded...
+5. Network Services -> Cloud NAT -> Create a new NAT GW
+   1. Select Cloud Router -> select our VPC and `Create a router`
+   2. NAT mapping. We can select subnets here or all subnets in this VPC
+   3. Takes up to 3 min to propagate to the VM.
+6. test again `sudo apt-get update`
 
 
 # Firewall
@@ -411,4 +440,9 @@ gcloud compute firewall-rules list --filter mynetwork  --sort-by=PRIORITY
 gcloud compute instances create privatenet-us-vm --zone=us-west1-a --machine-type=e2-micro --subnet=privatesubnet-us --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=10GB --boot-disk-type=pd-standard --boot-disk-device-name=privatenet-us-vm
 
 gcloud compute instances list --sort-by=ZONE
+```
+
+ssh to the vm called "my-vm-internal" via IAP (this requires the firewall to have a allow-ingress rule on TCP port 22 from 35.235.240.0/20)
+```
+gcloud compute ssh my-vm-internal --zone us-central1-a --tunnel-through-iap
 ```
