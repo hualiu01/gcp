@@ -1,9 +1,126 @@
+- [VM Instance](#vm-instance)
+  - [GCP computing IaaS =\> SaaS](#gcp-computing-iaas--saas)
+  - [Basics](#basics)
+  - [vCPU/Core options](#vcpucore-options)
+    - [CPU](#cpu)
+    - [GPU](#gpu)
+    - [TPU](#tpu)
+  - [Memory/RAM options](#memoryram-options)
+  - [Storage options](#storage-options)
+    - [Standard Spinning "Hard Disk Drive (HDD)" vs Flash Memory "Solid-State Drives (SSDs)"](#standard-spinning-hard-disk-drive-hdd-vs-flash-memory-solid-state-drives-ssds)
+    - [Local SSD](#local-ssd)
+    - [Cloud Storage](#cloud-storage)
+  - [Life Cycle](#life-cycle)
+    - [Stop/Terminate/Restart ...](#stopterminaterestart-)
+    - [Host Maintenance Policy](#host-maintenance-policy)
+  - [CLIs](#clis)
+  - [Pricing](#pricing)
+- [Containers](#containers)
+  - [K8s](#k8s)
+  - [GKE](#gke)
+  - [Cloud Run](#cloud-run)
 
-# Compute Engines
 
-![arch](./pics/gcp_computing_architectures.png)
+# VM Instance
 
-## Containers
+## GCP computing IaaS => SaaS
+
+___Compute Engine___ is GCP's service to create VMs. See below for other services:
+
+![options](./pics/4-google-cloud-compute-options.png)
+
+
+
+![options-details](./pics/4-google-cloud-compute-options-details.png)
+
+## Basics
+
+<mark style="background-color: lightgreen;">Q: What is a VM consist of?</mark> 
+A: It's consist of:
+1. one or more vCPUs (aka "core")
+2. memory (aka RAM)
+3. disk (aks "storage") w the following options
+   1. __Zonal or rigional__ persistent disk - HDD & SSD
+   3. [Local SSD](#local-ssd)
+   4. [Cloud Storage](#cloud-storage). 
+4. IP addresses:
+   1. Primary Internal IP: Automatically assigned from the subnet.
+   2. Primary External IP: Optional, used for internet access.
+   3. Alias IP Ranges: Additional internal IPs for specific applications or services.
+   4. Secondary Network Interfaces: Each interface can have its own internal and external IPs.
+
+<mark style="background-color: lightgreen;">Q: What is "burst capacity" of a VM?</mark>
+A: It means that the virtual CPU will run above its _rated capacity_ for a __brief period__, using the __available shared physical CPU__.
+
+## vCPU/Core options
+
+### CPU
+__⚠️ : Your choce of CPU will affect your network throughput.__ 
+- Specifically, your network will scale at __2 gigabits per second for each CPU core__, EXCEPT for instances with 2 or 4 CPUs which receive up to __10 gigabits per second__ of bandwidth. 
+- And there is a theoretical maximum throughput of 200 gigabits per second for an instance with 176 vCPU, when you choose an C3 machine series.
+
+___Hyperthreading___
+- Physical cores have hyperthreading. On Compute Engine, __each virtual CPU (or vCPU) is implemented as a single hardware hyper-thread__ on one of the available CPU Platforms.
+
+### GPU
+
+### TPU
+
+TPUs are Google’s custom-developed application-specific integrated circuits (ASICs) used to accelerate machine learning workloads.
+
+TPUs act as ___domain-specific hardware___, as opposed to general-purpose hardware with CPUs and GPUs.
+
+This allows for __higher efficiency by tailoring architecture to meet the computation needs in a domain__, such as the matrix multiplication in machine learning.
+
+TPUs are __generally faster__ than current GPUs and CPUs for AI applications and machine learning.
+
+They are also __significantly more energy-efficient__.
+
+## Memory/RAM options
+
+## Storage options
+
+### Standard Spinning "Hard Disk Drive (HDD)" vs Flash Memory "Solid-State Drives (SSDs)"
+
+Both of these options provide __the same amount of capacity in terms of disk size__ when choosing a persistent disk.
+
+SSDs are designed to give you a higher number of __IOPS per dollar__ versus standard disks, which will give you a higher amount of __capacity for your dollar__.
+
+Standard and non-local SSD disks can be sized up to 257 TB for each instance.
+
+### Local SSD
+
+Local SSDs have higher throughput and lower latency than SSD persistent disks, because they are attached to the physical hardware.
+
+However, the data that you store on local SSDs __persists only until you stop or delete the instance__.
+
+Typically, a local SSD is used as a swap disk, just like you would do if you want to create a ramdisk, but if you need more capacity, you can store those on a local SSD.
+
+### Cloud Storage
+
+And this is achieved by one of the following ways
+1. Using the Cloud Storage Client Libraries or gsutil: VMs can interact with Cloud Storage buckets programmatically or via command-line tools.
+2. __Mounting Cloud Storage as a File System__: Using tools like gcsfuse, you can mount a Cloud Storage bucket to a VM, making it accessible like a local file system.
+
+## Life Cycle
+![](pics/4-vm-lifecycle.png)
+
+### Stop/Terminate/Restart ...
+Q: How to change VM state from running
+![](./pics/4-change-vm-state-from-running.png)
+- Note: the reboot and shutdown are only available in OS
+- It’s important to know that if you are rebooting, stopping, or even deleting an instance, the shutdown process will take about 90 sec.
+- For a preemptible VM, if the instance does not stop after 30 seconds, Compute Engine sends an ACPI G3 Mechanical Off signal to the operating system. Remember that when writing shutdown scripts for preemptible VMs.
+
+### Host Maintenance Policy
+Q: How to configure VM's reaction on host maintenance?
+=> [Host maintenance policy overview](https://cloud.google.com/compute/docs/instances/host-maintenance-overview#schedulingoptions)
+
+## CLIs
+
+## Pricing
+
+# Containers
 
 Infrastructure as a service or IS, allows you to share compute resources with other developers by using Virtual Machines to virtualize the hardware. This lets each developer deploy their own operating system, OS, access the hardware, and build their applications in a self contained environment with access to RAM, file systems, networking interfaces, etc.
 

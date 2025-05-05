@@ -22,9 +22,10 @@
   - [External IP (Optional)](#external-ip-optional)
 - [Routes](#routes)
   - [Route Types](#route-types)
-- [Private Google Access (PGA)](#private-google-access-pga)
-- [Cloud NAT](#cloud-nat)
-- [PGA and Cloud NAT LAB](#pga-and-cloud-nat-lab)
+- [Connect to Google Serivices and Internet with no External IP](#connect-to-google-serivices-and-internet-with-no-external-ip)
+  - [PGA](#pga)
+  - [Cloud NAT](#cloud-nat)
+  - [PGA and Cloud NAT LAB](#pga-and-cloud-nat-lab)
 - [Firewall](#firewall)
   - [Configure firewall rules](#configure-firewall-rules)
   - [Configure allow ssh](#configure-allow-ssh)
@@ -98,7 +99,11 @@ https://cloud.google.com/vpc/docs/vpc-peering
 traffic not going through public internet.
 
 support internal private IP accassability as well as external IP. 
-- Q: would external IP access go through public internet in this case?
+- Q: would external IP access go through public internet in this case? 
+  - A: When two VPCs are connected via VPC Peering, the traffic between the VMs in these VPCs uses Google's private network infrastructure. Even if the VMs have external IPs, the communication will remain within Google's network and will not touch the public internet.
+  - However, note that:
+    - Private IPs should be used for communication to fully leverage the benefits of VPC Peering.
+    - If external IPs are used, the traffic will still stay within Google's private network but may incur egress charges.
 
 limitations:
 - subnet IP ranges can't overlap across peered vpc networks
@@ -242,7 +247,7 @@ Then, the EGRESS firewall that allows it.
 Q: How to configure routes within subnet, so that __resources in the same subnet can route traffic to each other__ ? what about between subnets?
 A: A route to subnets' CIDR, with next hop as the subnet itself. For between subnets => experiments to find out.
 
-Q: ow to specify a route to be applied to specific instances in a subnet?
+Q: how to specify a route to be applied to specific instances in a subnet?
 A: A route applies to an instance if the network and instance __tags__ match.
 - If the network matches and there are no instance tags specified, the route applies to all instances in that network.
 
@@ -264,21 +269,22 @@ A: A route applies to an instance if the network and instance __tags__ match.
 
 
 
-# Private Google Access (PGA)
+# Connect to Google Serivices and Internet with no External IP
 
+## PGA
 __PGA does not have effect on VMs with publich IP__. Meaning if an instance has a public IP, then, even if the PGA is enabled in the subnet it blelongs to, it will not use (bypassing) the PGA.
 
 private IP VMs does not need NAT gateway to use PGA to access google services. => todo: verify?
 
 An example: https://cloud.google.com/vpc/docs/private-google-access#example 
 
-# Cloud NAT
+## Cloud NAT
 
 Cloud NAT is a regional resource. You can configure it to allow traffic from all ranges of all subnets in a region, from specific subnets in the region only, or from specific primary and secondary CIDR ranges only.
 
 It may take up to 3 minutes for the NAT configuration to propagate to the VM, so wait at least a minute before trying to access the internet again.
 
-# PGA and Cloud NAT LAB
+## PGA and Cloud NAT LAB
 
 1. create vpc network and subnets and firewall rules
    1. private subnet mode: custom 
