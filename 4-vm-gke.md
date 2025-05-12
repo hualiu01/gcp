@@ -1,6 +1,20 @@
 - [VM Instance](#vm-instance)
   - [GCP computing IaaS =\> SaaS](#gcp-computing-iaas--saas)
   - [Basics](#basics)
+  - [General-purpose Machine Family](#general-purpose-machine-family)
+    - [E2](#e2)
+    - [N2, N2D, N1](#n2-n2d-n1)
+    - [Tau T2D, Tau T2A](#tau-t2d-tau-t2a)
+  - [Compute optimized Machine Family](#compute-optimized-machine-family)
+    - [C2](#c2)
+    - [C2D](#c2d)
+    - [H3](#h3)
+  - [Memory-Optimized machine family](#memory-optimized-machine-family)
+    - [M1 \& M2](#m1--m2)
+    - [M3](#m3)
+  - [Accelerator-optimized Machine Family (GPU core)](#accelerator-optimized-machine-family-gpu-core)
+    - [A2 (GPU core)](#a2-gpu-core)
+    - [G2 (GPU core)](#g2-gpu-core)
   - [vCPU/Core options](#vcpucore-options)
     - [CPU](#cpu)
     - [GPU](#gpu)
@@ -8,13 +22,18 @@
   - [Memory/RAM options](#memoryram-options)
   - [Storage options](#storage-options)
     - [Standard Spinning "Hard Disk Drive (HDD)" vs Flash Memory "Solid-State Drives (SSDs)"](#standard-spinning-hard-disk-drive-hdd-vs-flash-memory-solid-state-drives-ssds)
-    - [Local SSD](#local-ssd)
+    - [persistent SSDs vs Local SSD](#persistent-ssds-vs-local-ssd)
     - [Cloud Storage](#cloud-storage)
   - [Life Cycle](#life-cycle)
     - [Stop/Terminate/Restart ...](#stopterminaterestart-)
     - [Host Maintenance Policy](#host-maintenance-policy)
   - [CLIs](#clis)
+    - [create new vm](#create-new-vm)
+    - [check vm state](#check-vm-state)
+    - [after ssh into vm](#after-ssh-into-vm)
   - [Pricing](#pricing)
+    - [Preemptible and Spot VMs](#preemptible-and-spot-vms)
+    - [Sustained Use Discounts](#sustained-use-discounts)
 - [Containers](#containers)
   - [K8s](#k8s)
   - [GKE](#gke)
@@ -52,6 +71,111 @@ A: It's consist of:
 <mark style="background-color: lightgreen;">Q: What is "burst capacity" of a VM?</mark>
 A: It means that the virtual CPU will run above its _rated capacity_ for a __brief period__, using the __available shared physical CPU__.
 
+## General-purpose Machine Family
+
+![mf](./pics/4-general-purpose-mf.png)
+
+### E2
+__web servers, small to medium databases, development and test environments__, and many applications that don't have strict performance requirements.
+
+cost optimized day-to-day comoyting at a __lower cost__.
+
+The Standard E2 VMs have between __2 to 32 vCPUs with a ratio of 0.5 GB to 8 GB__ of memory per vCPU. 
+
+___SHARED CORE___
+
+- The E2 machine series also contains ___shared-core machine types___ that use context-switching to share a physical core between vCPUs for multitasking. 
+
+- In general, shared-core machine types can be more cost-effective for running small, non-resource intensive applications than standard, high-memory, or high-CPU machine types.
+
+- Shared-core E2 machine types have __0.25 to 1 vCPUs with 0.5 GB to 8 GB of memory__.
+
+### N2, N2D, N1
+
+enterprise applications, medium-to-large databases, and many web and app-serving workloads.
+
+N1 has compatible performance as E2.
+
+The N2 and N2D are the next generation following the N1 VMs, offering a significant performance jump.
+
+N2 VMs support the latest second generation scalable processor from Intel with up to 128 vCPUs and 0.5 to 8 GB of memory per vCPU.
+
+N2D are AMD-based general purpose VMs. They leverage the latest EPYC Milan and EPYC Rome processors, and provide up to 224 vCPUs per node.
+
+### Tau T2D, Tau T2A
+
+scale-out workloads including web servers, containerized microservices, media transcoding, and large-scale Java applications.
+
+T2D VMs are built on the latest 3rd Gen AMD EPYCTM processors and offer full x86 compatibility. T2D VMs come in predefined VM shapes, with up to 60 vCPUs per VM and 4 GB of memory per vCPU.
+
+__Tau T2A machine series is the first machine series in Google Cloud to run on Arm processors__. The Tau T2A machine series runs on a 64 core Ampere Altra processor with an Arm instruction set and an all-core frequency of 3 GHz.
+
+## Compute optimized Machine Family
+
+![mf](./pics/4-compute-optimized-mf.png)
+
+### C2
+4 to 60 vCPUs, up to 240 GB of memory.
+
+attach up to 3 TB of local storage.
+
+### C2D
+
+largest VM sizes
+
+largest available last-level cache per core.
+
+2 to 112 vCPUs, and offer 4 GB of memory per vCPU core.
+
+### H3
+
+The H3 series offer 88 cores and 352 GB of __DDR5 memory__ and are available on the Intel Sapphire Rapids CPU platform and Google's custom Intel Infrastructure Processing Unit (IPU).
+
+__Q: why is h3 not in memory-optimized machine family?__
+A: While H3 offers a significant amount of memory (352 GB), it is not comparable to the Memory-Optimized Machine Family (e.g., M1, M2, M3), which provides up to 12 TB of memory for workloads like in-memory databases.
+
+H3 is better suited for workloads requiring high compute performance with moderate memory needs, such as __simulations, scientific computing, or high-performance analytics__.
+
+## Memory-Optimized machine family
+
+![mf](./pics/4-memory-optimized-mf.png)
+
+These machine series are well-suited for large in-memory databases such as SAP HANA, as well as in-memory data analytics workloads.
+
+### M1 & M2
+The M1 machine series has up to 4 TB of memory, while the M2 machine series has up to 12 TB of memory.
+
+Both the M1 and M2 machine series offer the lowest cost per GB of memory on Compute
+
+### M3
+
+up to 128 vCPUs, with up to 30.5 GB of memory per vCPU
+
+
+## Accelerator-optimized Machine Family (GPU core)
+
+![mf](./pics/4-gpu-mf.png)
+
+parallelized Compute Unified Device Architecture (CUDA) compute workloads, such as machine learning and high-performance computing.
+
+This family is the optimal choice for workloads that require GPUs.
+
+### A2 (GPU core)
+
+Supports up to 16 NVIDIA Ampere A100 GPUs.(An A100 GPU provides 40 GB of GPU memory—ideal for large language models, databases, and high-performance computing.)
+
+Ideal for machine learning, high-performance computing, and large-scale workloads.
+
+12 to 96 vCPUs, and up to 1360 GB of memory.
+
+### G2 (GPU core)
+
+Supports NVIDIA L4 GPUs.
+
+Optimized for AI inference, graphics-intensive workloads, and video transcoding.
+
+4 to 96 vCPUs, up to 432 GB of memory
+
 ## vCPU/Core options
 
 ### CPU
@@ -63,6 +187,8 @@ ___Hyperthreading___
 - Physical cores have hyperthreading. On Compute Engine, __each virtual CPU (or vCPU) is implemented as a single hardware hyper-thread__ on one of the available CPU Platforms.
 
 ### GPU
+
+[see section: Accelerator-optimized Machine Family (GPU core)](#accelerator-optimized-machine-family-gpu-core)
 
 ### TPU
 
@@ -76,7 +202,32 @@ TPUs are __generally faster__ than current GPUs and CPUs for AI applications and
 
 They are also __significantly more energy-efficient__.
 
+__Q: what are the machine family in Google Could that is of TPU core?__
+Google Cloud __does not have a specific machine family dedicated to TPU cores__ like it does for GPUs(A2, G2 machine family). Instead, TPUs (Tensor Processing Units) are offered as a __separate accelerator that can be attached to Compute Engine VMs or used in AI/ML services like AI Platform__. TPUs are not categorized under the standard machine families (e.g., General-purpose, Compute-optimized, Memory-optimized, or Accelerator-optimized).
+
+Key Points about TPUs:
+- __Standalone TPU Nodes__: TPUs are typically used as standalone nodes for machine learning workloads, especially for TensorFlow and PyTorch.
+- __Integration with VMs__: TPUs can be attached to VMs for specific workloads but are not part of a machine family.
+- __Use Cases__: TPUs are optimized for deep learning tasks, such as training large neural networks or running inference for AI models.
+For TPU usage, you typically configure them separately from the VM machine family.
+
 ## Memory/RAM options
+
+In Google Cloud, Memory/RAM options are determined by the machine family and configuration of the virtual machine (VM). Here are the key options:
+
+1. General-Purpose Machine Family
+E2, N2, N2D, N1, Tau T2D, Tau T2A:
+Memory ranges from 0.5 GB to 8 GB per vCPU.
+Suitable for most workloads like web servers, small databases, and development environments.
+2. Compute-Optimized Machine Family
+C2, C2D, H3:
+Memory ranges from 4 GB per vCPU (e.g., C2D) to 352 GB total (e.g., H3).
+Designed for compute-intensive workloads with moderate memory needs.
+3. Memory-Optimized Machine Family
+M1, M2, M3:
+Offers the highest memory capacity, up to 12 TB per VM.
+Ideal for in-memory databases (e.g., SAP HANA) and large-scale analytics.
+
 
 ## Storage options
 
@@ -88,7 +239,9 @@ SSDs are designed to give you a higher number of __IOPS per dollar__ versus stan
 
 Standard and non-local SSD disks can be sized up to 257 TB for each instance.
 
-### Local SSD
+### persistent SSDs vs Local SSD
+
+However, persistent SSDs (standard or SSD persistent disks) are not physically attached to the VM's host machine. Instead, they are network-attached storage managed by Google Cloud, offering durability and flexibility.
 
 Local SSDs have higher throughput and lower latency than SSD persistent disks, because they are attached to the physical hardware.
 
@@ -118,7 +271,56 @@ Q: How to configure VM's reaction on host maintenance?
 
 ## CLIs
 
+### create new vm
+
+### check vm state
+
+### after ssh into vm
+
+For the custom VM you just created, click SSH.
+To see information about unused and used memory and swap space on your custom VM, run the following command:
+```
+free
+```
+
+To see details about the RAM installed on your VM, run the following command:
+```
+sudo dmidecode -t 17
+```
+
+To verify the number of processors, run the following command:
+```
+nproc
+```
+
+To see details about the CPUs installed on your VM, run the following command:
+```
+lscpu
+```
+
+
+
 ## Pricing
+
+min 1 minute. Then by seconds.
+
+vCPU and each GB of memory is billed separately rather than as a part of a simgle machine type. You still create instances using predefined machine types, but your bill reports them as individual vCPUs and memory used.
+
+### Preemptible and Spot VMs
+
+Preemptible and Spot VMs are instances that you can create and run at a much lower price than normal instances. 
+
+For both types of VM, Compute Engine might terminate (or preempt) these instances if it requires to access those resources for other tasks.
+
+Importantly, preemptible VMs can only run for up to 24 hours at a time, but Spot VMs do not have a maximum runtime.
+
+### Sustained Use Discounts 
+
+automatic discounts that you get for running specific Compute Engine resources (vCPUs, memory, and GPU devices) __for a significant portion of the billing month__.
+
+For example, when you run one of these resources for more than 25% of a month, Compute Engine automatically gives you a discount for every incremental minute you use for that instance.
+
+The discount increases with usage, and you can get up to 30% net discount for instances that run the entire month.
 
 # Containers
 
